@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Speaker · Gemini TTS</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #1a1d24;
+      --panel2: #22262f;
+      --border: #2e3440;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #8ab4f8;
+      --accent2: #a78bfa;
+      --danger: #f28b82;
+      --ok: #81c995;
+      --warn: #fdd663;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1b2340 0%, transparent 55%),
+                  radial-gradient(900px 500px at 100% 0%, #2a1b40 0%, transparent 50%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+    header {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.55rem;
+      letter-spacing: 0.02em;
+    }
+    .sub { color: var(--muted); font-size: 0.92rem; line-height: 1.45; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #243047;
+      color: var(--accent);
+      font-size: 0.78rem;
+      white-space: nowrap;
+      border: 1px solid #334466;
+    }
+    .card {
+      background: linear-gradient(180deg, var(--panel), #171a21);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    label {
+      display: block;
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin: 12px 0 6px;
+    }
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #5b8def;
+      box-shadow: 0 0 0 3px rgba(138,180,248,.15);
+    }
+    textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } header { flex-direction: column; } }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .filebox {
+      border: 1.5px dashed #3b4455;
+      border-radius: 12px;
+      padding: 16px;
+      background: #181b22;
+      transition: border-color .15s, background .15s;
+    }
+    .filebox:hover { border-color: #5b8def; background: #1b2030; }
+    .filebox input { width: 100%; color: var(--muted); }
+    .consent-box {
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    .consent-text {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      color: #d7dae0;
+      margin: 8px 0;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    button, .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6ea8fe, #8b7cf7);
+      color: #0b1020;
+      min-width: 220px;
+    }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid #3a4a66;
+    }
+    .btn-sec {
+      background: #2a3140;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .status {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .status.show { display: block; }
+    .status.info { background: #1c2738; border: 1px solid #314866; color: #c6d7f5; }
+    .status.ok { background: #15261c; border: 1px solid #2e5a3d; color: var(--ok); }
+    .status.err { background: #2a1717; border: 1px solid #6a3030; color: var(--danger); }
+    .status.warn { background: #2a2414; border: 1px solid #6a5a28; color: var(--warn); }
+    .result { display: none; }
+    .result.show { display: block; }
+    audio { width: 100%; margin-top: 10px; }
+    .meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 8px;
+      word-break: break-all;
+    }
+    .toggle {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 12px; color: var(--muted); font-size: 0.88rem;
+    }
+    footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.5;
+    }
+    a { color: var(--accent); }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #2a3140;
+      font-size: 0.75rem;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Create Speaker</h1>
+        <div class="sub">
+          使用 Google Gemini <span class="pill">gemini-3.8-flash-tts</span>
+          官方 Voice Replication API，從參考音複製音色並生成樣本。
+          API Key 只存在瀏覽器 localStorage 或本機 .env，不會寫入程式碼。
+        </div>
+      </div>
+      <div class="badge">Free tier ≈ 10 RPD</div>
+    </header>
+
+    <form id="form" class="card" autocomplete="off">
+      <h2>1. API 與模型</h2>
+      <label for="apiKey">Gemini API Key</label>
+      <input type="password" id="apiKey" name="api_key" placeholder="貼上你的 API Key（aistudio.google.com）" />
+      <div class="hint">金鑰僅存在瀏覽器 localStorage；也可改放專案根目錄 .env（GEMINI_API_KEY=）。不會被 log。</div>
+      <div class="actions">
+        <button type="button" class="btn-sec" id="btnSaveKey">記住金鑰（本機）</button>
+        <button type="button" class="btn-ghost" id="btnClearKey">清除本機金鑰</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="model">模型</label>
+          <select id="model" name="model">
+            <option value="gemini-3.8-flash-tts" selected>gemini-3.8-flash-tts（高保真）</option>
+            <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts（較省配額）</option>
+          </select>
+        </div>
+        <div>
+          <label for="storeVoice">語音儲存方式</label>
+          <select id="storeVoice" name="store_voice">
+            <option value="true" selected>store=true（雲端 voice_…，可重複用）</option>
+            <option value="false">store=false（本機 voicekey_…，約 7 天）</option>
+          </select>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">2. Speaker 設定</h2>
+      <label for="speakerName">Speaker 名稱</label>
+      <input type="text" id="speakerName" name="speaker_name" placeholder="例如：小美 / 阿豪 / Narrator" required />
+
+      <label for="reuseVoice">（選填）重用既有 voice_id / voicekey_</label>
+      <input type="text" id="reuseVoice" name="reuse_voice_id" placeholder="若已在 AI Studio 建好，可直接貼上，略過上傳" />
+      <div class="hint">填了就只做合成，不消耗「建立語音」步驟（仍消耗 TTS 請求）。</div>
+
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>參考音訊 source_audio（10–30 秒）</label>
+          <div class="filebox">
+            <input type="file" id="referenceAudio" name="reference_audio" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" />
+            <div class="hint">乾淨人聲、安靜環境。會自動轉成 24kHz mono WAV。</div>
+          </div>
+        </div>
+        <div>
+          <label>同意聲明錄音 consent_audio（必填）</label>
+          <div class="filebox">
+            <input type="file" id="consentAudio" name="consent_audio" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" />
+            <div class="hint">必須由<strong>同一人</strong>逐字朗讀下列同意全文。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="consent-box">
+        <div class="actions" style="margin-top:0">
+          <button type="button" class="btn-sec" data-locale="en-US">英文 en-US</button>
+          <button type="button" class="btn-sec" data-locale="zh-CN">簡中 zh-CN</button>
+          <button type="button" class="btn-ghost" id="btnCopyConsent">複製全文</button>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          官方目前同意聲明語系含 zh-CN，未列繁中；台灣使用者建議用 <strong>en-US</strong> 或 zh-CN 逐字朗讀。
+        </div>
+        <div class="consent-text" id="consentText"></div>
+      </div>
+
+      <label for="text">要朗讀的文字</label>
+      <textarea id="text" name="text" placeholder="留空則使用預設台灣國語測試句"></textarea>
+
+      <label for="style">說話風格 speech_metadata.style（台灣國語）</label>
+      <textarea id="style" name="style" style="min-height:64px"></textarea>
+
+      <div class="toggle">
+        <input type="checkbox" id="ackConsent" />
+        <label for="ackConsent" style="margin:0;color:var(--text)">
+          我確認參考音與同意錄音來自我本人（或已獲授權的成人），且僅供個人合法使用。
+        </label>
+      </div>
+
+      <div class="actions" style="margin-top:16px">
+        <button type="submit" class="btn-primary" id="btnGenerate">Generate Speaker Profile &amp; Sample</button>
+        <button type="button" class="btn-ghost" id="btnSynthOnly">只用 voice_id 再合成</button>
+      </div>
+      <div id="status" class="status"></div>
+    </form>
+
+    <div id="result" class="card result">
+      <h2>3. 結果</h2>
+      <audio id="player" controls></audio>
+      <div class="actions">
+        <a class="btn btn-sec" id="btnDownload" download>下載 WAV</a>
+      </div>
+      <div class="meta" id="resultMeta"></div>
+    </div>
+
+    <div class="card">
+      <h2>本機已存 profiles</h2>
+      <div id="profiles" class="meta">載入中…</div>
+    </div>
+
+    <footer>
+      模型文件：
+      <a href="https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts" target="_blank" rel="noopener">gemini-3.8-flash-tts</a>
+      ·
+      <a href="https://ai.google.dev/gemini-api/docs/generate-content/voice-replication" target="_blank" rel="noopener">Voice replication</a>
+      · 免責聲明：請勿在未獲同意下複製他人聲音；產出音訊可能含水印／使用限制，請遵守 Google 條款與當地法規。
+      Free tier 配額依專案而異（截圖常見 ~10 RPD / 3 RPM）。
+    </footer>
+  </div>
+
+  <script>
+    const LS_KEY = "gemini_tts_api_key_v1";
+    const DEFAULT_TEXT = "大家好，我是台灣 AI 語音測試。今天天氣不錯，我們一起用自然的台灣國語聊聊科技與生活。";
+    const DEFAULT_STYLE = "清晰自然的台灣國語（Taiwan Mandarin）口吻，溫暖親切、節奏穩穩的，發音清楚，不要大陸腔";
+
+    const phrases = {
+      "en-US": "I am the owner of this voice and I consent to Google using this voice to create a synthetic voice model.",
+      "zh-CN": "我是此声音的拥有者并授权谷歌使用此声音创建语音合成模型"
+    };
+    let currentLocale = "en-US";
+
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const resultEl = $("result");
+
+    function showStatus(type, msg) {
+      statusEl.className = "status show " + type;
+      statusEl.textContent = msg;
+    }
+    function clearStatus() {
+      statusEl.className = "status";
+      statusEl.textContent = "";
+    }
+
+    function setConsent(locale) {
+      currentLocale = locale;
+      $("consentText").textContent = phrases[locale] || phrases["en-US"];
+    }
+
+    $("text").placeholder = DEFAULT_TEXT;
+    $("style").value = DEFAULT_STYLE;
+    setConsent("en-US");
+
+    document.querySelectorAll("[data-locale]").forEach((btn) => {
+      btn.addEventListener("click", () => setConsent(btn.dataset.locale));
+    });
+    $("btnCopyConsent").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText($("consentText").textContent);
+        showStatus("ok", "已複製同意聲明全文。請用同一人清楚朗讀後上傳。");
+      } catch {
+        showStatus("warn", "複製失敗，請手動選取文字。");
+      }
+    });
+
+    // restore key
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) $("apiKey").value = saved;
+
+    $("btnSaveKey").addEventListener("click", () => {
+      const v = $("apiKey").value.trim();
+      if (!v) { showStatus("warn", "沒有可儲存的金鑰。"); return; }
+      localStorage.setItem(LS_KEY, v);
+      showStatus("ok", "已儲存到瀏覽器 localStorage（僅本機）。");
+    });
+    $("btnClearKey").addEventListener("click", () => {
+      localStorage.removeItem(LS_KEY);
+      $("apiKey").value = "";
+      showStatus("info", "已清除本機金鑰。");
+    });
+
+    async function loadProfiles() {
+      try {
+        const r = await fetch("/api/profiles");
+        const data = await r.json();
+        const box = $("profiles");
+        if (!data.profiles || !data.profiles.length) {
+          box.textContent = "尚無 profile。產生成功後會寫入 profiles/。";
+          return;
+        }
+        box.innerHTML = data.profiles.map((p) => {
+          const ref = p.voice_id || p.voice_key || p.voice_ref || "";
+          return `<div style="margin-bottom:10px">
+            <strong>${escapeHtml(p.name || "")}</strong>
+            <span class="pill">${escapeHtml(p.model || "")}</span>
+            <div>voice: <code>${escapeHtml(ref)}</code></div>
+            <div>sample: <a href="${escapeHtml(p.sample_path || "#")}" target="_blank">${escapeHtml(p.sample_path || "")}</a></div>
+            <div>at: ${escapeHtml(p.created_at || "")}</div>
+            <button type="button" class="btn-ghost reuse-btn" data-ref="${escapeAttr(ref)}" data-name="${escapeAttr(p.name || "")}">填入重用</button>
+          </div>`;
+        }).join("");
+        box.querySelectorAll(".reuse-btn").forEach((b) => {
+          b.addEventListener("click", () => {
+            $("reuseVoice").value = b.dataset.ref || "";
+            if (b.dataset.name) $("speakerName").value = b.dataset.name;
+            showStatus("info", "已填入 voice 參考，可直接「再用 voice_id 合成」。");
+          });
+        });
+      } catch (e) {
+        $("profiles").textContent = "無法載入 profiles。";
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/`/g, "");
+    }
+
+    function buildFormData({ requireAck, forSynthOnly }) {
+      if (requireAck && !$("ackConsent").checked) {
+        throw new Error("請勾選同意確認（僅複製自己或已授權的聲音）。");
+      }
+      const fd = new FormData();
+      fd.append("api_key", $("apiKey").value.trim());
+      fd.append("speaker_name", $("speakerName").value.trim() || "speaker");
+      fd.append("text", $("text").value.trim() || DEFAULT_TEXT);
+      fd.append("style", $("style").value.trim() || DEFAULT_STYLE);
+      fd.append("model", $("model").value);
+      fd.append("store_voice", $("storeVoice").value);
+      const reuse = $("reuseVoice").value.trim();
+      if (reuse) fd.append("reuse_voice_id", reuse);
+      if (!forSynthOnly) {
+        const ref = $("referenceAudio").files[0];
+        const cons = $("consentAudio").files[0];
+        if (!reuse) {
+          if (!ref) throw new Error("請上傳參考音訊（或填入既有 voice_id）。");
+          if (!cons) throw new Error("請上傳同意聲明錄音（官方 API 必填）。");
+          fd.append("reference_audio", ref);
+          fd.append("consent_audio", cons);
+        } else if (ref) {
+          fd.append("reference_audio", ref);
+        }
+      }
+      return fd;
+    }
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearStatus();
+      resultEl.classList.remove("show");
+      const btn = $("btnGenerate");
+      btn.disabled = true;
+      showStatus("info", "建立語音設定檔並合成中…（免費額度有限，請耐心等候）");
+      try {
+        const fd = buildFormData({ requireAck: true, forSynthOnly: false });
+        const r = await fetch("/api/generate", { method: "POST", body: fd });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const detail = data.detail;
+        const msg = typeof detail === 'string' ? detail
+          : Array.isArray(detail) ? detail.map(x => x.msg || JSON.stringify(x)).join('; ')
+          : (data.message || ('HTTP ' + r.status));
+        throw new Error(msg);
+        }
+        showResult(data);
+        const warn = (data.warnings || []).join("\n");
+        showStatus("ok", "完成！\nvoice: " + (data.voice_ref || "") + (warn ? "\n注意：\n" + warn : ""));
+        loadProfiles();
+      } catch (err) {
+        showStatus("err", String(err.message || err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $("btnSynthOnly").addEventListener("click", async () => {
+      clearStatus();
+      const ref = $("reuseVoice").value.trim();
+      if (!ref) {
+        showStatus("warn", "請先填入 voice_id / voicekey_。");
+        return;
+      }
+      showStatus("info", "合成中…");
+      try {
+        const fd = new FormData();
+        fd.append("api_key", $("apiKey").value.trim());
+        fd.append("voice_ref", ref);
+        fd.append("text", $("text").value.trim() || DEFAULT_TEXT);
+        fd.append("style", $("style").value.trim() || DEFAULT_STYLE);
+        fd.append("model", $("model").value);
+        fd.append("speaker_name", $("speakerName").value.trim() || "sample");
+        const r = await fetch("/api/synthesize", { method: "POST", body: fd });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const detail = data.detail;
+          const msg = typeof detail === 'string' ? detail
+            : Array.isArray(detail) ? detail.map(x => x.msg || JSON.stringify(x)).join('; ')
+            : ('HTTP ' + r.status);
+          throw new Error(msg);
+        }
+        showResult(data);
+        showStatus("ok", "合成完成。");
+      } catch (err) {
+        showStatus("err", String(err.message || err));
+      }
+    });
+
+    function showResult(data) {
+      resultEl.classList.add("show");
+      const url = data.audio_url;
+      $("player").src = url + "?t=" + Date.now();
+      const dl = $("btnDownload");
+      dl.href = url;
+      dl.download = data.audio_filename || "sample.wav";
+      $("resultMeta").innerHTML =
+        "model: <code>" + escapeHtml(data.model || "") + "</code><br>" +
+        "voice_ref: <code>" + escapeHtml(data.voice_ref || "") + "</code><br>" +
+        "file: <a href=\"" + escapeHtml(url) + "\" target=\"_blank\">" + escapeHtml(url) + "</a>";
+      if (data.voice_ref) $("reuseVoice").value = data.voice_ref;
+    }
+
+    loadProfiles();
+  </script>
+</body>
+</html>
